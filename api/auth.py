@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
-from utils import generate_token
+from models import User
+from core.utils import generate_token
+import bcrypt
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -9,9 +11,9 @@ def login():
     username = data.get("username")
     password = data.get("password")
 
-    # 예시: 하드코딩된 사용자 검증
-    if username == "admin" and password == "password123":
-        token = generate_token(username)
-        return jsonify({"token": token})
+    user = User.query.filter_by(username=username).first()
+    if not user or not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+        return jsonify({"message": "아이디 또는 비밀번호가 잘못되었습니다"}), 401
 
-    return jsonify({"message": "인증 실패"}), 401
+    token = generate_token(user.username)
+    return jsonify({"token": token})
